@@ -19,12 +19,14 @@ namespace PDB2ePubChs.HaoduPdbFiles.Internals
             {
                 int newLen = nb.Length << 1;
                 byte[] newBuffer = ArrayPool<byte>.Shared.Rent(newLen);
-                unsafe
+                if (newLen > 0)
                 {
-                    fixed (byte* pOrg = nb.Buffer, pNew = newBuffer)
-                        newLen = Encoding.UTF8.GetBytes((char*)pOrg, nb.Length >> 1, pNew, newLen);
+                    unsafe
+                    {
+                        fixed (byte* pOrg = nb.Buffer, pNew = newBuffer)
+                            newLen = Encoding.UTF8.GetBytes((char*)pOrg, nb.Length >> 1, pNew, newLen);
+                    }
                 }
-
                 return new BytesBuffer(newBuffer, newLen);
             }
         }
@@ -59,7 +61,7 @@ namespace PDB2ePubChs.HaoduPdbFiles.Internals
                          destlen,
                          IntPtr.Zero,
                          IntPtr.Zero,
-                         IntPtr.Zero) == 0)
+                         IntPtr.Zero) == 0 && length != 0)
                     {
                         ArrayPool<byte>.Shared.Return(chsBuf);
                         throw new Win32Exception(Marshal.GetLastWin32Error());

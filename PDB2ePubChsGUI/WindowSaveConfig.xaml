@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PDB2ePubChsGUI"
         mc:Ignorable="d"
-        Title="转换设置" ResizeMode="NoResize" ShowInTaskbar="False"  WindowStartupLocation="CenterOwner" WindowStyle="None" Closing="Window_Closing" Height="153" Width="203">
+        Title="转换设置" ResizeMode="NoResize" ShowInTaskbar="False"  WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow" Closing="Window_Closing" Height="153" Width="203">
 
     <Grid Margin="8,8,8,8">
         <Grid.RowDefinitions>
