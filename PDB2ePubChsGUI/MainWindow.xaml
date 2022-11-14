@@ -1,0 +1,26 @@
+﻿<Window x:Class="PDB2ePubChsGUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PDB2ePubChsGUI"
+        xmlns:dd="urn:gong-wpf-dragdrop"  
+        mc:Ignorable="d"
+        Title="PDB2ePubChsGUI" Height="450" Width="800" Closing="Window_Closing">
+    <DockPanel>
+        <ToolBarPanel DockPanel.Dock="Top">
+            <ToolBar>
+                <Button x:Name="ButtonAdd" Click="ButtonAdd_Click" IsEnabled="{Binding Source={StaticResource Fucker}, Path=ListEnabled, Mode=OneWay}" Content="添加"></Button>
+                <Separator></Separator>
+                <Button x:Name="ButtonConvSel" Click="ButtonConvSel_Click" IsEnabled="{Binding Source={StaticResource Fucker}, Path=SelEnabled, Mode=OneWay}" Content="转换"></Button>
+                <Button x:Name="ButtonConvAll" Click="ButtonConvAll_Click" IsEnabled="{Binding Source={StaticResource Fucker}, Path=AllEnabled, Mode=OneWay}" Content="转换全部"></Button>
+            </ToolBar>
+        </ToolBarPanel>
+        <ListBox IsEnabled="{Binding Source={StaticResource Fucker}, Path=ListEnabled, Mode=OneWay}" dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True" SelectionMode="Extended" SelectionChanged="ListBoxMain_SelectionChanged" x:Name="ListBoxMain"  ItemsSource="{Binding Source={StaticResource Fucker}, Path=Archives, Mode=OneWay}">
+            <ListBox.InputBindings>
+                <KeyBinding Key="Delete" Command="{Binding Source={StaticResource Fucker}, Path=CmdFucker}" ></KeyBinding>
+            </ListBox.InputBindings>
+        </ListBox>
+    </DockPanel>
+ 
+</Window>
