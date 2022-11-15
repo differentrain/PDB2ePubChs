@@ -65,14 +65,17 @@ namespace PDB2ePubChs.HaoduPdbFiles
         // </h1>
         private static readonly byte[] s_r2 = { 0x3C, 0x2F, 0x68, 0x31, 0x3E };
 
-        public static void CreateEpub(PdbArchive archive, string path)
+        public static void CreateEpub(PdbArchive archive, string path, string authorName = null)
         {
             EpubStreams streams = new EpubStreams(path);
             try
             {
                 WriteBookName(in streams, archive.BookNameBuffer, 0x31); //1
 
-                if (archive.AuthorBuffer.Length > 0)
+                if (authorName != null)
+                    using (BytesBuffer buf = authorName.ToUtf8String())
+                        WriteAuthorName(in streams, buf);
+                else if (archive.AuthorBuffer.Length > 0)
                     WriteAuthorName(in streams, archive.AuthorBuffer);
 
                 streams.Opf.Write(s_opf_5, 0, s_opf_5.Length);

@@ -3,19 +3,20 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.CompilerServices;
+using System.Linq;
 using System.Text;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace PDB2ePubChs.HaoduPdbFiles
 {
-    public sealed class PdbArchive : IDisposable
+    public abstract class PdbArchive : IDisposable
     {
-        // todo: add unicode chars here
-        private static readonly Dictionary<char, char> s_vericalDict = new Dictionary<char, char>() {
-            {'︿','〈'}, {'﹀','〉'}, {'︽','《'}, {'︾','》'}, {'︹','〔'}, {'︺','〕'}, {'︻','【'},
-            {'︼','】'}, {'﹃','‘'}, {'﹄','’'}, {'﹁','“'}, {'﹂','”'}, {'︷','｛'}, {'︸','｝'},
-            {'︵','（'}, {'︶','）'}, {'｜','—'}, {'│','…'}, {'︙','…'},  {'︱', '—' }
-        };
+        private static readonly Dictionary<char, char> s_unicodeDict;
+        private static readonly Dictionary<byte, byte[]> s_utf8Table_1;
+        private static readonly Dictionary<short, byte[]> s_utf8Table_2;
+        private static readonly Dictionary<byte, Dictionary<short, byte[]>> s_utf8Table_3;
+        private static readonly Dictionary<int, byte[]> s_utf8Table_4;
 
         // <p>
         private static readonly byte[] s_pStart = { 0x3C, 0x70, 0x3E };
@@ -24,26 +25,51 @@ namespace PDB2ePubChs.HaoduPdbFiles
         // </p><p>
         private static readonly byte[] s_pEndStart = { 0x3C, 0x2F, 0x70, 0x3E, 0x3C, 0x70, 0x3E };
 
-
-        //private static readonly byte[] s_hor_char_EF_0 = { 0xE3, 0x80, 0x88 }; // ︿〈
-        //private static readonly byte[] s_hor_char_EF_1 = { 0xE3, 0x80, 0x89 }; // ﹀〉
-        //private static readonly byte[] s_hor_char_EF_2 = { 0xE3, 0x80, 0x8A }; // ︽《
-        //private static readonly byte[] s_hor_char_EF_3 = { 0xE3, 0x80, 0x8B }; // ︾》
-        //private static readonly byte[] s_hor_char_EF_4 = { 0xE3, 0x80, 0x94 }; // ︹〔
-        //private static readonly byte[] s_hor_char_EF_5 = { 0xE3, 0x80, 0x95 }; // ︺〕
-        //private static readonly byte[] s_hor_char_EF_6 = { 0xE3, 0x80, 0x90 }; // ︻【
-        //private static readonly byte[] s_hor_char_EF_7 = { 0xE3, 0x80, 0x91 }; // ︼】
-        //private static readonly byte[] s_hor_char_EF_8 = { 0xE2, 0x80, 0x98 }; // ﹃‘
-        //private static readonly byte[] s_hor_char_EF_9 = { 0xE2, 0x80, 0x99 }; // ﹄’
-        //private static readonly byte[] s_hor_char_EF_10 = { 0xE2, 0x80, 0x9C }; // ﹁“
-        //private static readonly byte[] s_hor_char_EF_11 = { 0xE2, 0x80, 0x9D }; // ﹂”
-        //private static readonly byte[] s_hor_char_EF_12 = { 0xEF, 0xBD, 0x9B }; // ︷｛
-        //private static readonly byte[] s_hor_char_EF_13 = { 0xEF, 0xBD, 0x9D }; // ︸｝
-        //private static readonly byte[] s_hor_char_EF_14 = { 0xEF, 0xBC, 0x88 }; // ︵（
-        //private static readonly byte[] s_hor_char_EF_15 = { 0xEF, 0xBC, 0x89 }; // ︶）
-        //private static readonly byte[] s_hor_char_EF_16 = { 0xE2, 0x80, 0x94 }; // ｜—   ︱—
-        //private static readonly byte[] s_hor_char_EF_17 = { 0xE2, 0x80, 0xA6 }; // ︙…
-
+        static unsafe PdbArchive()
+        {
+            // auto gen
+            using (XmlReader reader = XmlReader.Create("ReplacedChars.xml"))
+            {
+                var xml = new XmlSerializer(typeof(ReplacedChar[]));
+                var rc = xml.Deserialize(reader) as ReplacedChar[];
+                s_unicodeDict = rc.ToDictionary(k => k.Org[0], v => v.Rep[0]);
+            }
+            s_utf8Table_1 = new Dictionary<byte, byte[]>(s_unicodeDict.Count);
+            s_utf8Table_2 = new Dictionary<short, byte[]>(s_unicodeDict.Count);
+            s_utf8Table_3 = new Dictionary<byte, Dictionary<short, byte[]>>(s_unicodeDict.Count);
+            s_utf8Table_4 = new Dictionary<int, byte[]>(s_unicodeDict.Count);
+            char ukey, uvalue;
+            int keyBytesCount, valueBytesCount;
+            Dictionary<short, byte[]> dict;
+            byte* pbuffer = stackalloc byte[8];
+            foreach (KeyValuePair<char, char> item in s_unicodeDict)
+            {
+                ukey = item.Key;
+                uvalue = item.Value;
+                keyBytesCount = Encoding.UTF8.GetBytes(&ukey, 1, pbuffer, 4);
+                valueBytesCount = Encoding.UTF8.GetBytes(&uvalue, 1, pbuffer + 4, 4);
+                switch (keyBytesCount)
+                {
+                    case 1:
+                        s_utf8Table_1.Add(pbuffer[0], Utils.CreateBytes(pbuffer + 4, valueBytesCount));
+                        break;
+                    case 2:
+                        s_utf8Table_2.Add(*(short*)pbuffer, Utils.CreateBytes(pbuffer + 4, valueBytesCount));
+                        break;
+                    case 3:
+                        if (!s_utf8Table_3.TryGetValue(pbuffer[0], out dict))
+                        {
+                            dict = new Dictionary<short, byte[]>(s_unicodeDict.Count);
+                            s_utf8Table_3.Add(pbuffer[0], dict);
+                        }
+                        dict.Add(*(short*)(pbuffer + 1), Utils.CreateBytes(pbuffer + 4, valueBytesCount));
+                        break;
+                    default: // 4
+                        s_utf8Table_4.Add(*(int*)pbuffer, Utils.CreateBytes(pbuffer + 4, valueBytesCount));
+                        break;
+                }
+            }
+        }
 
 
         private readonly FileStream _fs;
@@ -52,24 +78,25 @@ namespace PDB2ePubChs.HaoduPdbFiles
 
         private readonly int _elementCount;
 
-        public PdbArchive(string path)
+
+        internal PdbArchive(BytesBuffer header, FileStream fs)
         {
             BytesBuffer tempBuf = null;
             BytesBuffer tempBuf2 = null;
             try
             {
-                _fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+                _fs = fs;
                 // header
-                tempBuf = ReadAndEusureHeader(_fs);
+                tempBuf = header;
                 _elementCount = tempBuf.ReadBigEndianUInt16(76);
-                AuthorBuffer = tempBuf.GetUtf8Buffer(0, GetAuthorBytesCount(tempBuf));
+                AuthorBuffer = GetUtf8Buffer(tempBuf, 0, GetAuthorBytesCount(tempBuf));
                 tempBuf.Dispose();
                 // indexes
                 tempBuf = BytesBuffer.CreateFromStream(_fs, _elementCount << 3);
                 // catalogue
                 tempBuf2 = BytesBuffer.CreateFromStream(_fs, tempBuf.ReadBigEndianInt32(8) - tempBuf.ReadBigEndianInt32(0));
                 int nextIndex = GetBookNameCount(tempBuf2, out int nameCount);
-                BookNameBuffer = tempBuf2.GetUtf8Buffer(8, nameCount);
+                BookNameBuffer = GetUtf8Buffer(tempBuf2, 8, nameCount);
                 Chapters = CreateChapters(tempBuf, tempBuf2, nextIndex, _elementCount - 2);
                 ID = Guid.NewGuid();
             }
@@ -95,13 +122,24 @@ namespace PDB2ePubChs.HaoduPdbFiles
 
         public PdbChapterInfo[] Chapters { get; }
 
+
+        protected internal abstract int ChapterLengthFixed { get; }
+
+        internal abstract BytesBuffer GetUtf8Buffer(BytesBuffer buf, int start, int length);
+
+        protected internal abstract int GetAuthorBytesCount(byte[] buf);
+
+        protected internal abstract int GetBookNameCount(byte[] buf, out int nameCount);
+
+        internal abstract int FindNextChapterNameBuf(BytesBuffer buf, int startIndex, out BytesBuffer nameBuf);
+
         internal MemoryStream CreateHtmlStream(PdbChapterInfo chapter/*, bool seek*/)
         {
             // todo: add seek for random accessing
             // if (seek)
             //   _fs.Seek(chapter.Position, SeekOrigin.Begin);
             BytesBuffer temp = BytesBuffer.CreateFromStream(_fs, chapter.Length);
-            BytesBuffer utf8Buf = temp.GetUtf8Buffer(0, temp.Length);
+            BytesBuffer utf8Buf = GetUtf8Buffer(temp, 0, temp.Length + ChapterLengthFixed);
             temp.Dispose();
             MemoryStream ms = Utils.MSManager.GetStream();
             ms.Write(Utils.Chapter_Start, 0, Utils.Chapter_Start.Length);
@@ -115,213 +153,95 @@ namespace PDB2ePubChs.HaoduPdbFiles
             return ms;
         }
 
+
+        public static PdbArchive Open(string path)
+        {
+            FileStream fs = null;
+            BytesBuffer header = null;
+            try
+            {
+                fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+                header = BytesBuffer.CreateFromStream(fs, 78);
+                return header.ReadBigEndianInt32(64) == 0x4D544954
+                    ? new PdbBig5(header, fs)
+                    : header.ReadBigEndianInt32(64) == 0x4D544955 ? (PdbArchive)new PdbUnicode(header, fs) : throw Utils.Unsupported_Pdb_File;
+            }
+            catch
+            {
+                fs?.Dispose();
+                header?.Dispose();
+                throw;
+            }
+        }
+
+
         private void AppendAndProcess(BytesBuffer utf8Buf, MemoryStream ms)
         {
             var length = utf8Buf.Length;
             int i = 0;
             byte ch;
-            ushort t;
+            byte[] bs;
             ms.Write(s_pStart, 0, 3);
             unsafe
             {
                 fixed (byte* pOld = utf8Buf.Buffer)
                     while (i < length)
-                        switch (ch = pOld[i])
+                        if ((ch = pOld[i]) == 13) // /r/n
                         {
-                            case 13: // /r/n
-                                ms.Write(s_pEndStart, 0, 7);
-                                i += 2;
-                                break;
-                            case 0xEF:
-                                t = GetNewValueEF(pOld + i + 1, out ch);
+                            ms.Write(s_pEndStart, 0, 7);
+                            i += 2;
+                        }
+                        else if (ch <= 0x7F) // 1
+                        {
+                            if (s_utf8Table_1.TryGetValue(ch, out bs))
+                                ms.Write(bs, 0, bs.Length);
+                            else
                                 ms.WriteByte(ch);
-                                ms.WriteByte(*(byte*)&t);
-                                ms.WriteByte(*((byte*)&t + 1));
-                                i += 3;
-                                break;
-                            case 0xE2:
-                                t = GetNewValueE2(pOld + i + 1);
-                                ms.WriteByte(0xE2);
-                                ms.WriteByte(*(byte*)&t);
-                                ms.WriteByte(*((byte*)&t + 1));
-                                i += 3;
-                                break;
-                            default:
-                                ms.WriteByte(ch); // 1
-                                ++i;
-                                if (ch > 0x7F) // 2
-                                    ms.WriteByte(*(pOld + i++));
-                                if (ch > 0xDF) // 3
-                                    ms.WriteByte(*(pOld + i++));
-                                if (ch > 0xEF) // 4
-                                    ms.WriteByte(*(pOld + i++));
-                                break;
+                            ++i;
+                        }
+                        else if (ch <= 0xDF) // 2
+                        {
+                            if (s_utf8Table_2.TryGetValue(*(short*)(pOld + i), out bs))
+                                ms.Write(bs, 0, bs.Length);
+                            else
+                            {
+                                ms.WriteByte(ch);
+                                ms.WriteByte(*(pOld + 1));
+                            }
+                            i += 2;
+                        }
+                        else if (ch <= 0xEF) // 3
+                        {
+                            if (s_utf8Table_3.TryGetValue(ch, out Dictionary<short, byte[]> dict) &&
+                                dict.TryGetValue(*(short*)(pOld + i + 1), out bs))
+                                ms.Write(bs, 0, bs.Length);
+                            else
+                            {
+                                ms.WriteByte(ch);
+                                ms.WriteByte(*(pOld + i + 1));
+                                ms.WriteByte(*(pOld + i + 2));
+                            }
+                            i += 3;
+                        }
+                        else   // 4
+                        {
+                            if (s_utf8Table_4.TryGetValue(*(int*)(pOld + i), out bs))
+                                ms.Write(bs, 0, bs.Length);
+                            else
+                            {
+                                ms.WriteByte(ch);
+                                ms.WriteByte(*(pOld + i + 1));
+                                ms.WriteByte(*(pOld + i + 2));
+                                ms.WriteByte(*(pOld + i + 3));
+                            }
+                            i += 4;
                         }
             }
             ms.Write(s_pEnd, 0, 4);
         }
 
-        // todo: add utf8 chars here
-        private unsafe ushort GetNewValueEF(byte* p, out byte first)
-        {
-            var v = Utils.ReadBigEndianUInt16(p);
-            switch (v)
-            {
-                case 0xB8BF: // ︿〈
-                    first = 0xE3;
-                    v = 0x8088;
-                    break;
-                case 0xB980: // ﹀〉
-                    first = 0xE3;
-                    v = 0x8089;
-                    break;
-                case 0xB8BD: // ︽《
-                    first = 0xE3;
-                    v = 0x808A;
-                    break;
-                case 0xB8BE: // ︾》
-                    first = 0xE3;
-                    v = 0x808B;
-                    break;
-                case 0xB8B9: // ︹〔
-                    first = 0xE3;
-                    v = 0x8094;
-                    break;
-                case 0xB8BA: // ︺〕
-                    first = 0xE3;
-                    v = 0x8095;
-                    break;
-                case 0xB8BB: // ︻【
-                    first = 0xE3;
-                    v = 0x8090;
-                    break;
-                case 0xB8BC: // ︼】
-                    first = 0xE3;
-                    v = 0x8091;
-                    break;
-                case 0xB983: // ﹃‘
-                    first = 0xE2;
-                    v = 0x8098;
-                    break;
-                case 0xB984: // ﹄’
-                    first = 0xE2;
-                    v = 0x8099;
-                    break;
-                case 0xB981: // ﹁“
-                    first = 0xE2;
-                    v = 0x809C;
-                    break;
-                case 0xB982: // ﹂”
-                    first = 0xE2;
-                    v = 0x809D;
-                    break;
-                case 0xB8B7: // ︷｛
-                    first = 0xEF;
-                    v = 0xBD9B;
-                    break;
-                case 0xB8B8: // ︸｝
-                    first = 0xEF;
-                    v = 0xBD9D;
-                    break;
-                case 0xB8B5: // ︵（
-                    first = 0xEF;
-                    v = 0xBC88;
-                    break;
-                case 0xB8B6: // ︶）
-                    first = 0xEF;
-                    v = 0xBC89;
-                    break;
-                case 0xBD9C: // ｜—
-                case 0xB8B1: // ︱—
-                    first = 0xE2;
-                    v = 0x8094;
-                    break;
-                case 0xB899: // ︙…
-                    first = 0xE2;
-                    v = 0x80A6;
-                    break;
-                default:
-                    first = 0xEF;
-                    break;
-            }
-            return BitConverter.IsLittleEndian ? (ushort)((v >> 8) | (v << 8)) : v;
 
-        }
-        private unsafe ushort GetNewValueE2(byte* p)
-        {
-            var v = Utils.ReadBigEndianUInt16(p);
-            if (v == 0x9482) // │…
-                v = 0x80A6;
-            return BitConverter.IsLittleEndian ? (ushort)((v >> 8) | (v << 8)) : v;
-        }
-
-        private BytesBuffer ReadAndEusureHeader(Stream stream)
-        {
-            BytesBuffer buf = BytesBuffer.CreateFromStream(stream, 78);
-            if (buf.ReadBigEndianInt32(64) != 0x4D544955) //MITU
-            {
-                buf.Dispose();
-                throw Utils.Unsupported_Pdb_File;
-            }
-            return buf;
-        }
-
-        private static int GetAuthorBytesCount(byte[] buf)
-        {
-            unsafe
-            {
-                fixed (byte* p = buf)
-                {
-                    int i = 0;
-                    while (i < buf.Length)
-                    {
-                        if (ReadReplace((char*)(p + i)) == '\0')
-                            break;
-                        i += 2;
-                    }
-                    return i;
-                }
-            }
-        }
-
-        private static int GetBookNameCount(byte[] buf, out int nameCount)
-        {
-            int i = 8;
-            int len = buf.Length;
-            int flag = 0;
-            unsafe
-            {
-                fixed (byte* p = buf)
-                {
-                    while (i < len && flag < 3)
-                    {
-                        if (ReadReplace((char*)(p + i)) == '\u001b')
-                            ++flag;
-                        else
-                            flag = 0;
-                        i += 2;
-                    }
-                    nameCount = i - 8 - 6;
-                    flag = 0;
-                    while (i < len)
-                    {
-                        if (flag == 1)
-                        {
-                            if (p[i++] == 0)
-                                break;
-                            flag = 0;
-                        }
-                        else if (p[i++] == 27)
-                        {
-                            flag = 1;
-                        }
-                    }
-                }
-            }
-            return i;
-        }
-
-        private static PdbChapterInfo[] CreateChapters(BytesBuffer indexes, BytesBuffer catalogue, int startIndex, int chapterCount)
+        private PdbChapterInfo[] CreateChapters(BytesBuffer indexes, BytesBuffer catalogue, int startIndex, int chapterCount)
         {
             var chapters = new PdbChapterInfo[chapterCount];
             int i = 0;
@@ -339,39 +259,7 @@ namespace PDB2ePubChs.HaoduPdbFiles
             return chapters;
         }
 
-        private static int FindNextChapterNameBuf(BytesBuffer buf, int startIndex, out BytesBuffer nameBuf)
-        {
-            unsafe
-            {
-                fixed (byte* p = buf.Buffer)
-                {
-                    bool foundCR = false;
-                    char word;
-                    int i = startIndex;
-                    while (i < buf.Length)
-                    {
-                        word = ReadReplace((char*)(p + i));
-                        if (foundCR)
-                        {
-                            if (word == '\n')
-                                break;
-                            foundCR = false;
-                        }
-                        else if (word == '\r')
-                        {
-                            foundCR = true;
-                        }
-                        i += 2;
-                    }
-                    nameBuf = buf.GetUtf8Buffer(startIndex, i - startIndex - 2);
-                    return i + 2;
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe char ReadReplace(char* p) => s_vericalDict.TryGetValue(*p, out char newCh) ? *p = newCh : *p;
-
+        protected unsafe char GetReplacedChar(char* p) => s_unicodeDict.TryGetValue(*p, out char nw) ? *p = nw : *p;
 
         #region dispose
 

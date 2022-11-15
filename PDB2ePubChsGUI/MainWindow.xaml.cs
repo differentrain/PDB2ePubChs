@@ -22,14 +22,14 @@ namespace PDB2ePubChsGUI
             CheckPathExists = true,
             CheckFileExists = true,
             Multiselect = true,
-            Filter = "好读Updb文件|*.updb",
-            Title = "打开uPdb文件"
+            Filter = "好读电子书文档|*.updb;*.pdb",
+            Title = "打开好读电子书文档"
         };
 
         private static readonly SaveFileDialog s_sp = new SaveFileDialog()
         {
             CheckPathExists = true,
-            Filter = "好读Updb文件|*.updb",
+            Filter = "epub电子书|*.epub",
             Title = "保存到"
         };
 
@@ -40,8 +40,6 @@ namespace PDB2ePubChsGUI
         {
             InitializeComponent();
             MainListBox = ListBoxMain;
-
-
         }
 
         private void ButtonAdd_Click(object sender, RoutedEventArgs e)
@@ -53,7 +51,7 @@ namespace PDB2ePubChsGUI
                 {
                     try
                     {
-                        list.Add(new PdbArchive(s_op.FileNames[i]));
+                        list.Add(PdbArchive.Open(s_op.FileNames[i]));
                     }
                     catch
                     {
@@ -109,6 +107,8 @@ namespace PDB2ePubChsGUI
                 {
                     var bn = FuckViewer.Instance.BookName.Trim();
                     var an = FuckViewer.Instance.Author.Trim();
+                    if (bn == string.Empty)
+                        bn = $"{an}作品集";
                     var t = $@"《{bn}》{an}.epub";
                     if (t.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) < 0)
                         s_sp.FileName = t;

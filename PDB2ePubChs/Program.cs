@@ -41,10 +41,22 @@ namespace PDB2ePubChs
             PdbArchive archive = null;
             try
             {
-                archive = new PdbArchive(args[1]);
-                string path = args.Length > 2 ? args[2] : $@"{args[1].GetDirPath()}\《{archive.BookName}》{archive.Author}.epub";
+                string customAuthorName = null;
+                string path;
+                if (args[1].Trim().ToLower() == "-a")
+                {
+                    customAuthorName = args[2].Trim().ToLower();
+                    archive = PdbArchive.Open(args[3]);
+                    path = args.Length > 4 ? args[4] : $@"{args[3].GetDirPath()}\《{archive.BookName}》{customAuthorName}.epub";
+                }
+                else
+                {
+                    archive = PdbArchive.Open(args[1]);
+                    path = args.Length > 2 ? args[2] : $@"{args[1].GetDirPath()}\《{archive.BookName}》{archive.Author}.epub";
+
+                }
                 Console.WriteLine("转换中...");
-                Pdb2Epub.CreateEpub(archive, path);
+                Pdb2Epub.CreateEpub(archive, path, customAuthorName);
                 Console.WriteLine("完成。");
             }
             catch (Exception e)

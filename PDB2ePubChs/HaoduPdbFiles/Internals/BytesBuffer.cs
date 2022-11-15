@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -13,9 +14,31 @@ namespace PDB2ePubChs.HaoduPdbFiles.Internals
 
         private BytesBuffer(byte[] buffer, int length) : base(buffer, length) { }
 
-        public BytesBuffer GetUtf8Buffer(int startIndex, int count)
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public BytesBuffer GetUtf8Buffer(int startIndex, int count) => GetUtf8BufferCore(this, startIndex, count);
+
+
+        public BytesBuffer GetUnicodeBuffer(int startIndex, int count)
         {
-            using (BytesBuffer nb = GetUnicodeBuffer(startIndex, count))
+            BytesBuffer unicode = new BytesBuffer(count << 1);
+            unsafe
+            {
+                if (count > 0)
+                    fixed (byte* pBig5 = Buffer, pUnicode = unicode.Buffer)
+                        unicode.Length = Utils.Big5.GetChars(pBig5 + startIndex, count, (char*)pUnicode, count) << 1;
+            }
+
+            return unicode;
+        }
+
+
+
+
+        private BytesBuffer GetUtf8BufferCore(BytesBuffer buffer, int startIndex, int count)
+        {
+            using (BytesBuffer nb = GetChsBuffer(buffer, startIndex, count))
             {
                 int newLen = nb.Length << 1;
                 byte[] newBuffer = ArrayPool<byte>.Shared.Rent(newLen);
@@ -31,13 +54,13 @@ namespace PDB2ePubChs.HaoduPdbFiles.Internals
             }
         }
 
-        private BytesBuffer GetUnicodeBuffer(int startIndex, int count)
+
+        private BytesBuffer GetChsBuffer(BytesBuffer buffer, int startIndex, int count)
         {
             var length = count >> 1;
-
             unsafe
             {
-                fixed (byte* p = Buffer)
+                fixed (byte* p = buffer.Buffer)
                 {
                     var destlen = NativeMethods.LCMapStringEx(
                          NativeMethods.LOCALE_NAME_INVARIANT,

@@ -108,10 +108,13 @@
     <Compile Include="HaoduPdbFiles\Internals\ArrayBuffer.cs" />
     <Compile Include="HaoduPdbFiles\Internals\BytesBuffer.cs" />
     <Compile Include="HaoduPdbFiles\Internals\NativeMethods.cs" />
+    <Compile Include="HaoduPdbFiles\Internals\PdbBig5.cs" />
+    <Compile Include="HaoduPdbFiles\Internals\PdbUnicode.cs" />
     <Compile Include="HaoduPdbFiles\Pdb2Epub.cs" />
     <Compile Include="HaoduPdbFiles\PdbArchive.cs" />
     <Compile Include="HaoduPdbFiles\PdbChapterInfo.cs" />
     <Compile Include="HaoduPdbFiles\Internals\Utils.cs" />
+    <Compile Include="HaoduPdbFiles\ReplacedChar.cs" />
     <Compile Include="HaoduPdbFiles\SharedUtils.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -119,6 +122,11 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ReplacedChars.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

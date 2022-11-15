@@ -19,7 +19,7 @@ namespace PDB2ePubChs.HaoduPdbFiles
 
             PdbArchive[] archives = new PdbArchive[fis.Length];
             for (int i = 0; i < fis.Length; i++)
-                archives[i] = new PdbArchive(fis[i].FullName);
+                archives[i] = PdbArchive.Open(fis[i].FullName);
             return archives;
         }
 

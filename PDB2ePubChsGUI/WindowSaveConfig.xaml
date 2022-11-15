@@ -36,7 +36,7 @@
                 <ColumnDefinition></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <TextBlock Text="作者名" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top"></TextBlock>
-            <TextBox Text="{Binding Source={StaticResource Fucker}, Path=Author,Mode=OneWayToSource,UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Source={StaticResource Fucker}, Path=PackEnabled,Mode=OneWay}" Grid.Column="1" VerticalAlignment="Top" />
+            <TextBox Text="{Binding Source={StaticResource Fucker}, Path=Author,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Source={StaticResource Fucker}, Path=PackEnabled,Mode=OneWay}" Grid.Column="1" VerticalAlignment="Top" />
         </Grid>
         <Grid Grid.Row="3" Margin="0,4,0,0">
             <Grid.ColumnDefinitions>

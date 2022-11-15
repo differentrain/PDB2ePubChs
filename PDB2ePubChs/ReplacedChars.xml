@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfReplacedChar xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ReplacedChar Org="︿" Rep="〈" />
+  <ReplacedChar Org="﹀" Rep="〉" />
+  <ReplacedChar Org="︽" Rep="《" />
+  <ReplacedChar Org="︾" Rep="》" />
+  <ReplacedChar Org="︹" Rep="〔" />
+  <ReplacedChar Org="︺" Rep="〕" />
+  <ReplacedChar Org="︻" Rep="【" />
+  <ReplacedChar Org="︼" Rep="】" />
+  <ReplacedChar Org="﹃" Rep="‘" />
+  <ReplacedChar Org="﹄" Rep="’" />
+  <ReplacedChar Org="﹁" Rep="“" />
+  <ReplacedChar Org="﹂" Rep="”" />
+  <ReplacedChar Org="︷" Rep="｛" />
+  <ReplacedChar Org="︸" Rep="｝" />
+  <ReplacedChar Org="︵" Rep="（" />
+  <ReplacedChar Org="︶" Rep="）" />
+  <ReplacedChar Org="｜" Rep="—" />
+  <ReplacedChar Org="│" Rep="…" />
+  <ReplacedChar Org="︙" Rep="…" />
+  <ReplacedChar Org="︱" Rep="—" />
+  <ReplacedChar Org="殭" Rep="僵" />
+  <ReplacedChar Org="屍" Rep="尸" />
+  <ReplacedChar Org="摀" Rep="捂" />
+  <ReplacedChar Org="紮" Rep="扎" />
+  <ReplacedChar Org="慾" Rep="欲" />
+</ArrayOfReplacedChar>

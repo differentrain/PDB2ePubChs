@@ -18,7 +18,7 @@ namespace PDB2ePubChsGUI
         private bool _allEnabled = false;
         private bool _packChecked = false;
         private string _bookName = string.Empty;
-
+        private string _author = string.Empty;
 
         public FuckViewer()
         {
@@ -93,11 +93,22 @@ namespace PDB2ePubChsGUI
             }
         }
 
-        public bool ButtonOKEnabled => !PackEnabled || !string.IsNullOrWhiteSpace(BookName);
-
-        public string Author { get; set; } = string.Empty;
+        public bool ButtonOKEnabled => !PackEnabled || !string.IsNullOrWhiteSpace(BookName) || !string.IsNullOrWhiteSpace(Author);
 
 
+
+        public string Author
+        {
+            get => _author; set
+            {
+                if (_author != value)
+                {
+                    _author = value;
+                    Invoke();
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ButtonOKEnabled)));
+                }
+            }
+        }
 
         public ObservableCollection<PdbArchive> Archives { get; } = new ObservableCollection<PdbArchive>();
 
