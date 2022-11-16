@@ -63,6 +63,13 @@
 ```
 当需要进行增补时，直接将 `<ReplacedChar Org="要转换的文字" Rep="对应文字" />` 添加到列表中即可。
 
+`[1.1.1]` 现在，可以使用[正则表达式替换](https://learn.microsoft.com/zh-cn/dotnet/standard/base-types/substitutions-in-regular-expressions)来替换字符了。
+
+替换过程位于将繁体转化为简体之后。
+
+例如 `<ReplacedChar Org="乾([脆净])" Rep="干$1" />`，就是将匹配`乾脆`或`乾净`中的`乾`字替换为`干`。
+
+
 ## 其他
 
 如果遇到有保持竖式排版的符号，或者发现其他错误，可以[提交给我](https://github.com/differentrain/PDB2ePubChs/issues/new)。
