@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -17,6 +18,7 @@ namespace PDB2ePubChs.HaoduPdbFiles
         private static readonly Dictionary<short, byte[]> s_utf8Table_2;
         private static readonly Dictionary<byte, Dictionary<short, byte[]>> s_utf8Table_3;
         private static readonly Dictionary<int, byte[]> s_utf8Table_4;
+        private static readonly ReplacedWord[] s_replaceWords;
 
         // <p>
         private static readonly byte[] s_pStart = { 0x3C, 0x70, 0x3E };
@@ -28,11 +30,22 @@ namespace PDB2ePubChs.HaoduPdbFiles
         static unsafe PdbArchive()
         {
             // auto gen
+            ReplacedChar pattern;
             using (XmlReader reader = XmlReader.Create("ReplacedChars.xml"))
             {
                 var xml = new XmlSerializer(typeof(ReplacedChar[]));
                 var rc = xml.Deserialize(reader) as ReplacedChar[];
-                s_unicodeDict = rc.ToDictionary(k => k.Org[0], v => v.Rep[0]);
+                s_unicodeDict = new Dictionary<char, char>(rc.Length);
+                var l = new List<ReplacedWord>(rc.Length);
+                for (int i = 0; i < rc.Length; i++)
+                {
+                    pattern = rc[i];
+                    if (pattern.Org.Length == 1)
+                        s_unicodeDict.Add(pattern.Org[0], pattern.Rep[0]);
+                    else
+                        l.Add(new ReplacedWord(pattern));
+                }
+                s_replaceWords = l.ToArray();
             }
             s_utf8Table_1 = new Dictionary<byte, byte[]>(s_unicodeDict.Count);
             s_utf8Table_2 = new Dictionary<short, byte[]>(s_unicodeDict.Count);
@@ -259,7 +272,30 @@ namespace PDB2ePubChs.HaoduPdbFiles
             return chapters;
         }
 
-        protected unsafe char GetReplacedChar(char* p) => s_unicodeDict.TryGetValue(*p, out char nw) ? *p = nw : *p;
+        protected static unsafe char GetReplacedChar(char* p) => s_unicodeDict.TryGetValue(*p, out char nw) ? *p = nw : *p;
+
+        internal static bool GetReplacedString(BytesBuffer unicode, int start, int length, out BytesBuffer replaced)
+        {
+            replaced = null;
+            if (s_replaceWords.Length == 0)
+                return false;
+            unsafe
+            {
+                fixed (byte* p = unicode.Buffer)
+                {
+                    var str = new string((char*)(p + start), 0, length >> 1);
+                    ReplacedWord rw;
+                    for (int i = 0; i < s_replaceWords.Length; i++)
+                    {
+                        rw = s_replaceWords[i];
+                        str = rw.Reg.Replace(str, rw.Pattern);
+                    }
+                    replaced = BytesBuffer.CreateFromString(str);
+                    return true;
+                }
+            }
+
+        }
 
         #region dispose
 

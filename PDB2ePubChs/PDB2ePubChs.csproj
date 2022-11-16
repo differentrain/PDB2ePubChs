@@ -110,6 +110,7 @@
     <Compile Include="HaoduPdbFiles\Internals\NativeMethods.cs" />
     <Compile Include="HaoduPdbFiles\Internals\PdbBig5.cs" />
     <Compile Include="HaoduPdbFiles\Internals\PdbUnicode.cs" />
+    <Compile Include="HaoduPdbFiles\Internals\ReplacedWord.cs" />
     <Compile Include="HaoduPdbFiles\Pdb2Epub.cs" />
     <Compile Include="HaoduPdbFiles\PdbArchive.cs" />
     <Compile Include="HaoduPdbFiles\PdbChapterInfo.cs" />
@@ -125,7 +126,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="ReplacedChars.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

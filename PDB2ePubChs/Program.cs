@@ -8,10 +8,8 @@ namespace PDB2ePubChs
 {
     internal class Program
     {
-        // var x = new PdbArchive(@"C:\Users\diffe\Desktop\17S4.updb");
         private static void Main(string[] args)
         {
-
             if (args.Length < 2)
             {
                 Console.WriteLine(Utils.ConsoleHelper);

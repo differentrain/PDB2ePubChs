@@ -40,6 +40,8 @@ namespace PDB2ePubChs.HaoduPdbFiles.Internals
         {
             using (BytesBuffer nb = GetChsBuffer(buffer, startIndex, count))
             {
+                if (PdbArchive.GetReplacedString(nb, 0, nb.Length, out BytesBuffer utfBuf))
+                    return utfBuf;
                 int newLen = nb.Length << 1;
                 byte[] newBuffer = ArrayPool<byte>.Shared.Rent(newLen);
                 if (newLen > 0)
