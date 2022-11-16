@@ -27,7 +27,7 @@
 
 作者精力有限，不可能找到所有需要转换的符号，有些汉字也无法准确从繁体映射到简体。
 
-现在，可以通过程序目录下的 `ReplacedChars.xml` 文件来配置字符转换表，程序会根据转换表来进行相应的处理。
+现在，可以通过程序目录下的 [`ReplacedChars.xml`](https://github.com/differentrain/PDB2ePubChs/blob/master/PDB2ePubChs/ReplacedChars.xml) 文件来配置字符转换表，程序会根据转换表来进行相应的处理。
 
 以下是目前程序默认的转换表：
 
@@ -69,6 +69,7 @@
 
 例如 `<ReplacedChar Org="乾([脆净])" Rep="干$1" />`，就是将匹配`乾脆`或`乾净`中的`乾`字替换为`干`。
 
+作者精力有限，只会阅读自己感兴趣的书籍，所以欢迎大家分享自己的转换表。
 
 ## 其他
 
